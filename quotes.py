@@ -9,6 +9,10 @@ class QuotesSpider(scrapy.Spider):
 
     def parse(self, response):
         self.log('I just visited :' + response.url)
+        urls = response.css('div.quote > span > a::attr(href)').extract()
+        for url in urls:
+            url = response.urljoin(url)
+            yield scrapy.Request(url=url,callback=self.parse_details)
         for quote in response.css('div.quote'):
             item = {
                 'author_name': quote.css('small.author::text').extract_first(),
@@ -20,3 +24,8 @@ class QuotesSpider(scrapy.Spider):
         if next_page_url:    
             next_page_url = response.urljoin(next_page_url)
             yield scrapy.Request(url=next_page_url,callback=self.parse)
+    def parse_details(self, response):
+        yield {
+           'author_name': response.css('h3.author-title::text').extract_first(),
+            'birth_date': response.css('span.author-born-date::text').extract_first()
+        }
